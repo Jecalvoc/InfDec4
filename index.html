@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soberanía Digital · Clasificador y Simulador</title>
+<style>
+  :root{
+    --bg:#0a0e1a;
+    --bg2:#111827;
+    --panel:#151c2e;
+    --line:#1f2a44;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    --accent:#22d3ee;
+    --accent2:#a78bfa;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --err:#ef4444;
+    --gold:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:'Segoe UI',system-ui,sans-serif;
+    background:radial-gradient(ellipse at top,#0f172a 0%,#0a0e1a 60%);
+    color:var(--text);min-height:100vh;line-height:1.5;
+  }
+  header{
+    background:linear-gradient(135deg,#0f172a,#1e1b4b);
+    border-bottom:1px solid var(--line);
+    padding:18px 24px;position:sticky;top:0;z-index:10;
+    backdrop-filter:blur(8px);
+  }
+  header h1{
+    margin:0;font-size:1.3rem;letter-spacing:1px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header .sub{font-size:.8rem;color:var(--muted);margin-top:4px}
+  nav{
+    display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;
+  }
+  nav button{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:.85rem;
+    transition:.2s;
+  }
+  nav button:hover{border-color:var(--accent);color:var(--accent)}
+  nav button.active{
+    background:linear-gradient(135deg,rgba(34,211,238,.15),rgba(167,139,250,.15));
+    border-color:var(--accent);color:var(--accent);
+  }
+  main{max-width:1200px;margin:0 auto;padding:24px}
+  .dashboard{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;margin-bottom:24px;
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:16px;
+  }
+  .card .label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .card .value{font-size:1.6rem;font-weight:700;margin-top:4px;color:var(--accent)}
+  .progress{
+    height:6px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;
+  }
+  .progress > div{
+    height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    width:0%;transition:.4s;
+  }
+  .module{display:none;animation:fade .4s}
+  .module.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2{
+    margin:0 0 6px;font-size:1.4rem;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .module > p.intro{color:var(--muted);margin-bottom:20px;font-size:.95rem}
+  .case-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;margin-bottom:12px;transition:.2s;
+  }
+  .case-card:hover{border-color:var(--accent)}
+  .case-card .num{
+    display:inline-block;background:var(--line);color:var(--accent);
+    padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700;
+    margin-right:8px;
+  }
+  .case-card .text{font-size:.95rem;margin:8px 0 12px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .controls select, .controls input{
+    background:var(--bg2);color:var(--text);border:1px solid var(--line);
+    padding:8px 10px;border-radius:6px;font-size:.85rem;
+  }
+  .controls select:focus{outline:none;border-color:var(--accent)}
+  .feedback{
+    font-size:.82rem;padding:6px 10px;border-radius:6px;margin-top:8px;
+    display:none;
+  }
+  .feedback.ok{background:rgba(34,197,94,.12);color:var(--ok);border:1px solid rgba(34,197,94,.3);display:block}
+  .feedback.err{background:rgba(239,68,68,.12);color:var(--err);border:1px solid rgba(239,68,68,.3);display:block}
+  .feedback.info{background:rgba(34,211,238,.1);color:var(--accent);border:1px solid rgba(34,211,238,.3);display:block}
+  .btn{
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#0a0e1a;border:none;padding:10px 18px;border-radius:8px;
+    font-weight:700;cursor:pointer;font-size:.9rem;transition:.2s;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(34,211,238,.3)}
+  .btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+  .btn.secondary:hover{border-color:var(--accent)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .dropzone{
+    min-height:80px;border:2px dashed var(--line);border-radius:10px;
+    padding:12px;margin-bottom:12px;background:rgba(255,255,255,.02);
+  }
+  .dropzone h4{margin:0 0 8px;color:var(--accent);font-size:.9rem}
+  .dropzone .items{display:flex;flex-wrap:wrap;gap:6px;min-height:40px}
+  .chip{
+    background:var(--bg2);border:1px solid var(--line);padding:6px 10px;
+    border-radius:6px;font-size:.8rem;cursor:grab;user-select:none;
+    transition:.2s;
+  }
+  .chip:hover{border-color:var(--accent)}
+  .chip.correct{border-color:var(--ok);background:rgba(34,197,94,.1)}
+  .chip.wrong{border-color:var(--err);background:rgba(239,68,68,.1)}
+  .simulator{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:20px;margin-bottom:16px;
+  }
+  .simulator .mock-email{
+    background:#fff;color:#111;border-radius:8px;padding:14px;
+    font-family:'Courier New',monospace;font-size:.85rem;margin:12px 0;
+    border:1px solid #ccc;
+  }
+  .simulator .mock-email .hdr{
+    border-bottom:1px solid #ddd;padding-bottom:8px;margin-bottom:8px;
+    font-size:.8rem;
+  }
+  .simulator .mock-email .hdr b{color:#b91c1c}
+  .choices{display:grid;gap:8px;margin-top:12px}
+  .choices button{
+    background:var(--bg2);color:var(--text);border:1px solid var(--line);
+    padding:10px;border-radius:8px;text-align:left;cursor:pointer;
+    transition:.2s;font-size:.88rem;
+  }
+  .choices button:hover{border-color:var(--accent)}
+  .choices button.correct{border-color:var(--ok);background:rgba(34,197,94,.15)}
+  .choices button.wrong{border-color:var(--err);background:rgba(239,68,68,.15)}
+  .sentence-builder{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;margin-bottom:12px;
+  }
+  .sentence-builder textarea{
+    width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--line);
+    padding:10px;border-radius:6px;font-family:inherit;font-size:.88rem;
+    resize:vertical;min-height:60px;
+  }
+  .sentence-builder textarea:focus{outline:none;border-color:var(--accent)}
+  .sentence-builder label{
+    display:block;font-size:.78rem;color:var(--muted);margin:8px 0 4px;
+    text-transform:uppercase;letter-spacing:1px;
+  }
+  .legend{
+    background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);
+    border-radius:8px;padding:12px;margin-bottom:16px;font-size:.85rem;
+  }
+  .legend b{color:var(--accent)}
+  .result-banner{
+    background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(167,139,250,.15));
+    border:1px solid var(--ok);border-radius:12px;padding:20px;text-align:center;
+    margin:20px 0;
+  }
+  .result-banner .score{
+    font-size:2.5rem;font-weight:800;
+    background:linear-gradient(90deg,var(--ok),var(--accent));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  footer{
+    text-align:center;padding:24px;color:var(--muted);font-size:.8rem;
+    border-top:1px solid var(--line);margin-top:40px;
+  }
+  .tag{
+    display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;
+    font-weight:700;margin-right:4px;
+  }
+  .tag.phishing{background:rgba(239,68,68,.2);color:#fca5a5}
+  .tag.grooming{background:rgba(167,139,250,.2);color:#c4b5fd}
+  .tag.catfishing{background:rgba(244,114,182,.2);color:#f9a8d4}
+  .tag.ux{background:rgba(251,191,36,.2);color:#fde68a}
+  .tag.fp{background:rgba(34,197,94,.2);color:#86efac}
+  .tag.f1{background:rgba(34,211,238,.2);color:#67e8f9}
+  .tag.f2{background:rgba(167,139,250,.2);color:#c4b5fd}
+  .tag.f3{background:rgba(244,114,182,.2);color:#f9a8d4}
+  @media(max-width:640px){
+    header h1{font-size:1.1rem}
+    main{padding:16px}
+    .card .value{font-size:1.3rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ SOBERANÍA DIGITAL · Clasificador y Simulador de Amenazas</h1>
+  <div class="sub">Actividad interactiva · 4 Módulos · Ingeniería de la Atención y Autoprotección</div>
+  <nav>
+    <button data-mod="dashboard" class="active">📊 Dashboard</button>
+    <button data-mod="m1">🎣 M1 · Clasificación de Amenazas</button>
+    <button data-mod="m2">🔗 M2 · Protocolo de Contención</button>
+    <button data-mod="m3">🛒 M3 · Simulador de Consumismo</button>
+    <button data-mod="m4">⚖️ M4 · Tribunal de Soberanía</button>
+    <button data-mod="final">🏆 Resultado Final</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="module active">
+    <h2>Panel de Progreso</h2>
+    <p class="intro">Avanza por los cuatro módulos. Cada respuesta correcta fortalece tu soberanía digital.</p>
+    <div class="dashboard">
+      <div class="card">
+        <div class="label">Puntaje Global</div>
+        <div class="value" id="totalScore">0</div>
+        <div class="progress"><div id="totalBar"></div></div>
+      </div>
+      <div class="card">
+        <div class="label">M1 · Amenazas</div>
+        <div class="value" id="m1Score">0 / 40</div>
+        <div class="progress"><div id="m1Bar"></div></div>
+      </div>
+      <div class="card">
+        <div class="label">M2 · Protocolo</div>
+        <div class="value" id="m2Score">0 / 40</div>
+        <div class="progress"><div id="m2Bar"></div></div>
+      </div>
+      <div class="card">
+        <div class="label">M3 · Consumismo</div>
+        <div class="value" id="m3Score">0 / 10</div>
+        <div class="progress"><div id="m3Bar"></div></div>
+      </div>
+      <div class="card">
+        <div class="label">M4 · Soberanía</div>
+        <div class="value" id="m4Score">0 / 10</div>
+        <div class="progress"><div id="m4Bar"></div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <b>Instrucciones:</b> Cada módulo presenta casos reales del ecosistema digital latinoamericano.
+      Debes clasificar la amenaza, identificar el mecanismo psicológico explotado y proponer la respuesta soberana.
+      La precisión salva vidas; la disciplina construye libertad.
+    </div>
+    <button class="btn" onclick="go('m1')">▶ Comenzar Módulo 1</button>
+  </section>
+
+  <!-- MÓDULO 1 -->
+  <section id="m1" class="module">
+    <h2>Módulo 1 · Clasificación de Amenazas Digitales</h2>
+    <p class="intro">Para cada escenario, identifica el <b>tipo de amenaza</b> y el <b>mecanismo psicológico</b> explotado. Categorías: Phishing, Grooming, Catfishing, Adicción UX, Falso Positivo.</p>
+    <div class="toolbar">
+      <button class="btn secondary" onclick="resetM1()">🔄 Reiniciar</button>
+      <button class="btn" onclick="checkAllM1()">✓ Validar Todo</button>
+    </div>
+    <div id="m1List"></div>
+  </section>
+
+  <!-- MÓDULO 2 -->
+  <section id="m2" class="module">
+    <h2>Módulo 2 · Trazabilidad del Protocolo de Contención</h2>
+    <p class="intro">Arrastra cada acción a la fase correcta del protocolo: <b>Fase 1 · Preservación</b>, <b>Fase 2 · Denuncia</b> o <b>Fase 3 · Contención</b>.</p>
+    <div class="toolbar">
+      <button class="btn secondary" onclick="resetM2()">🔄 Reiniciar</button>
+      <button class="btn" onclick="checkM2()">✓ Validar Clasificación</button>
+    </div>
+    <div class="dropzone" id="pool">
+      <h4>📦 Acciones sin clasificar</h4>
+      <div class="items" id="poolItems"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div class="dropzone" data-phase="1">
+        <h4><span class="tag f1">FASE 1</span> Preservación de Evidencia</h4>
+        <div class="items"></div>
+      </div>
+      <div class="dropzone" data-phase="2">
+        <h4><span class="tag f2">FASE 2</span> Denuncia Formal</h4>
+        <div class="items"></div>
+      </div>
+      <div class="dropzone" data-phase="3">
+        <h4><span class="tag f3">FASE 3</span> Contención y Apoyo</h4>
+        <div class="items"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MÓDULO 3 -->
+  <section id="m3" class="module">
+    <h2>Módulo 3 · Simulador de Eventos de Consumismo</h2>
+    <p class="intro">Se te presentarán escenarios reales de marketing digital. Identifica el <b>sesgo cognitivo</b> explotado y la <b>consecuencia</b> que genera en el usuario.</p>
+    <div class="toolbar">
+      <button class="btn secondary" onclick="resetM3()">🔄 Reiniciar</button>
+    </div>
+    <div id="m3List"></div>
+  </section>
+
+  <!-- MÓDULO 4 -->
+  <section id="m4" class="module">
+    <h2>Módulo 4 · Tribunal de la Autonomía</h2>
+    <p class="intro">Redacta una <b>Sentencia de Soberanía</b> para cada dilema. Debe contener: (1) la amenaza a la autonomía, (2) el costo de la sumisión, (3) el veredicto técnico-psicológico.</p>
+    <div class="toolbar">
+      <button class="btn secondary" onclick="resetM4()">🔄 Reiniciar</button>
+      <button class="btn" onclick="evaluateM4()">⚖️ Emitir Veredicto</button>
+    </div>
+    <div id="m4List"></div>
+  </section>
+
+  <!-- FINAL -->
+  <section id="final" class="module">
+    <h2>🏆 Resultado Final · Tu Nivel de Soberanía</h2>
+    <div id="finalContent"></div>
+  </section>
+
+</main>
+
+<footer>
+  Actividad educativa · Soberanía Digital · Ingeniería de la Atención y Autoprotección Ciudadana
+</footer>
+
+<script>
+/* ============ DATOS ============ */
+
+const M1_CASES = [
+  {t:"Correo de \"Netflix\" pidiendo actualizar tarjeta porque \"su cuenta será bloqueada en 1 hora\"", threat:"Phishing", mech:"Urgencia/Miedo"},
+  {t:"Usuario de 40 años que chatea con tu hijo de 12 en Discord y le pide fotos \"privadas\"", threat:"Grooming", mech:"Confianza/Secreto"},
+  {t:"Deslizar el feed de Instagram sin saber qué video saldrá a continuación", threat:"Adicción UX", mech:"Recompensa Variable"},
+  {t:"Perfil de \"modelo\" que te pide dinero para un \"trámite de visa\" y venir a conocerte", threat:"Catfishing", mech:"Empatía/Soledad"},
+  {t:"SMS de \"Correos de Chile / Servientrega\" con un link acortado (bit.ly) para rastrear un paquete", threat:"Phishing", mech:"Curiosidad/Institucionalidad"},
+  {t:"Sentir ansiedad si no revisas el celular al despertar", threat:"Adicción UX", mech:"Dependencia Neuroquímica"},
+  {t:"WhatsApp de un \"familiar\" con foto de perfil clonada que pide una transferencia urgente porque \"está en el hospital\"", threat:"Phishing", mech:"Autoridad/Urgencia"},
+  {t:"Notificación de Instagram: \"Viste 47 publicaciones en 10 minutos. ¿Quieres seguir?\" con botón \"Seguir\"", threat:"Adicción UX", mech:"FOMO/Recompensa Variable"},
+  {t:"Perfil en Tinder que dice ser médico estadounidense en misión humanitaria y pide recargar una tarjeta de regalo para \"liberar un paquete\"", threat:"Catfishing", mech:"Empatía/Deseo"},
+  {t:"Correo de \"BancoEstado\" con asunto \"Movimiento no reconocido\" y enlace a un sitio que imita la web oficial", threat:"Phishing", mech:"Miedo/Institucionalidad"},
+  {t:"Niño de 10 años recibe en Roblox mensajes de un \"jugador pro\" que le ofrece V-Bucks si activa la cámara", threat:"Grooming", mech:"Recompensa/Confianza"},
+  {t:"App de delivery muestra contador regresivo: \"Tu descuento expira en 00:59\" aunque el usuario no ha decidido comprar", threat:"Adicción UX", mech:"Urgencia Artificial"},
+  {t:"Llamada de \"soporte técnico de Microsoft\" que pide instalar AnyDesk para \"limpiar virus\"", threat:"Phishing", mech:"Autoridad/Miedo"},
+  {t:"Cuenta de TikTok de una \"reclutadora\" que ofrece trabajo desde casa y pide datos bancarios y copia de cédula", threat:"Phishing", mech:"Oportunidad/Necesidad"},
+  {t:"Scroll infinito en YouTube Shorts: cada 15 segundos aparece un nuevo video sin necesidad de decidir", threat:"Adicción UX", mech:"Fricción Cero/Recompensa Variable"},
+  {t:"Alerta de \"Google\" que dice que el dispositivo está infectado y pide descargar una app de limpieza", threat:"Phishing", mech:"Miedo/Autoridad"},
+  {t:"Perfil falso de Facebook que usa fotos de una influencer y pide dinero para \"operación de su madre\"", threat:"Catfishing", mech:"Empatía/Compasión"},
+  {t:"Sistema antispam detecta que un usuario real fue marcado como bot por error y bloquea su cuenta", threat:"Falso Positivo", mech:"Error Algorítmico"},
+  {t:"WhatsApp de \"premio\" de supermercado: \"Ganaste una gift card, reclama aquí\" con enlace a formulario", threat:"Phishing", mech:"Codicia/Sorpresa"},
+  {t:"Juego móvil envía notificación: \"Tu energía se ha llenado. Vuelve ahora o perderás tu racha\"", threat:"Adicción UX", mech:"Pérdida/FOMO"},
+  {t:"Hombre de 35 años en una app de citas pide a una adolescente de 14 encontrarse en un centro comercial", threat:"Grooming", mech:"Manipulación/Secreto"},
+  {t:"Correo de \"Recursos Humanos\" con archivo adjunto .exe que dice ser \"nueva política salarial\"", threat:"Phishing", mech:"Autoridad/Curiosidad"},
+  {t:"Instagram muestra anuncio de un producto que el usuario ya compró y no volverá a comprar", threat:"Falso Positivo", mech:"Error de Segmentación"},
+  {t:"SMS de \"MercadoLibre\" con link para \"confirmar dirección\" y evitar cancelación del pedido", threat:"Phishing", mech:"Urgencia/Institucionalidad"},
+  {t:"Cuenta de Twitter/X que se hace pasar por periodista y pide información personal a menores por DM", threat:"Grooming", mech:"Autoridad/Confianza"},
+  {t:"App de apuestas envía notificación: \"Estás a un clic de recuperar lo perdido\" tras una derrota", threat:"Adicción UX", mech:"Falacia del Jugador"},
+  {t:"Detección automática de contenido marca como \"discurso de odio\" una denuncia legítima de acoso", threat:"Falso Positivo", mech:"Error Algorítmico"},
+  {t:"Correo de \"Universidad\" pidiendo renovar matrícula con pago a cuenta personal del \"coordinador\"", threat:"Phishing", mech:"Autoridad/Institucionalidad"},
+  {t:"Grupo de WhatsApp con nombre de \"Colegio\" que pide fotos de los niños para el \"anuario escolar\"", threat:"Grooming", mech:"Confianza/Institucionalidad"},
+  {t:"Filtro de belleza en videollamada que altera el rostro en tiempo real y genera dependencia de la autoimagen editada", threat:"Adicción UX", mech:"Dismorfia/Refuerzo"},
+  {t:"Perfil de \"empresa\" en LinkedIn que ofrece reembolso de gastos y pide número de tarjeta para \"verificar identidad\"", threat:"Phishing", mech:"Oportunidad/Autoridad"},
+  {t:"Algoritmo de TikTok muestra a un adolescente contenido de dietas extremas tras ver videos de fitness", threat:"Adicción UX", mech:"Radar de Recomendación"},
+  {t:"Mensaje en Discord de \"moderador\" que pide al usuario cambiar su contraseña en un sitio externo", threat:"Phishing", mech:"Autoridad/Urgencia"},
+  {t:"Notificación de Duolingo: \"No pierdas tu racha de 100 días. Haz una lección ahora\"", threat:"Adicción UX", mech:"Aversión a la Pérdida"},
+  {t:"Correo de \"Fondo de pensiones\" que solicita actualizar datos personales y bancarios mediante enlace", threat:"Phishing", mech:"Institucionalidad/Miedo"},
+  {t:"Sitio web de noticias muestra ventana emergente: \"Suscríbete ahora o no podrás seguir leyendo\" tras 5 segundos", threat:"Adicción UX", mech:"Fricción Forzada/Urgencia"},
+  {t:"Perfil falso de \"hijo\" que escribe a una madre mayor pidiendo dinero porque \"perdió el celular y está en apuros\"", threat:"Phishing", mech:"Vínculo Familiar/Urgencia"},
+  {t:"App de música sugiere playlist infinita y elimina el botón de pausa visible para fomentar escucha continua", threat:"Adicción UX", mech:"Fricción Cero"},
+  {t:"Antivirus legítimo alerta de una amenaza real, pero el usuario cree que es falso positivo y la ignora", threat:"Falso Positivo", mech:"Fatiga de Alertas"},
+  {t:"Cuenta de Instagram de \"sorteo\" pide etiquetar amigos, compartir en historias y dar datos personales para \"participar\"", threat:"Phishing", mech:"Codicia/Prueba Social"}
+];
+
+const M2_ACTIONS = [
+  {t:"Tomar captura de pantalla incluyendo la URL, fecha y hora visible", phase:1},
+  {t:"Descargar y guardar las conversaciones completas en formato original, sin editar", phase:1},
+  {t:"Calcular el hash SHA-256 del archivo de evidencia y registrar el valor", phase:1},
+  {t:"Copiar la evidencia a un USB nuevo y etiquetarlo", phase:1},
+  {t:"Diligenciar la cadena de custodia con fecha, hora y responsable de cada copia", phase:1},
+  {t:"No borrar ni modificar mensajes, correos, publicaciones o archivos originales", phase:1},
+  {t:"Guardar registros de llamadas, mensajes y correos vinculados al caso", phase:1},
+  {t:"Exportar metadatos de archivos: fecha de creación, autor y dispositivo", phase:1},
+  {t:"Guardar los logs o registros de acceso de la cuenta afectada", phase:1},
+  {t:"Hacer inventario de dispositivos, cuentas y perfiles afectados", phase:1},
+  {t:"Solicitar a la plataforma la preservación de datos y contenido", phase:1},
+  {t:"Redactar un relato cronológico de los hechos con fechas, lugares y testigos", phase:1},
+  {t:"Identificar y guardar URL, usuarios y perfiles implicados", phase:1},
+  {t:"Grabar pantalla mostrando el recorrido completo hasta el contenido", phase:1},
+  {t:"Realizar copia forense del dispositivo con herramienta especializada", phase:1},
+  {t:"Imprimir y firmar acta de preservación de evidencia", phase:1},
+  {t:"Presentar denuncia formal ante la Fiscalía o URI", phase:2},
+  {t:"Entregar el USB con la evidencia en la Unidad de Delitos Tecnológicos", phase:2},
+  {t:"Radicar denuncia en línea y guardar el número de radicado", phase:2},
+  {t:"Entregar copia del hash y de la cadena de custodia al investigador", phase:2},
+  {t:"Solicitar constancia de la denuncia", phase:2},
+  {t:"Pedir medidas de protección ante la autoridad competente", phase:2},
+  {t:"Aportar testigos y pruebas documentales a la denuncia", phase:2},
+  {t:"Solicitar a la Fiscalía la preservación legal de evidencia en plataformas", phase:2},
+  {t:"Entregar evidencia adicional en sobre sellado a la autoridad", phase:2},
+  {t:"Solicitar copia de la denuncia para seguimiento del caso", phase:2},
+  {t:"Denunciar el contenido ante la plataforma digital", phase:3},
+  {t:"Bloquear al agresor en redes sociales y mensajería", phase:3},
+  {t:"Cambiar contraseñas y activar verificación en dos pasos", phase:3},
+  {t:"Cerrar sesiones activas en dispositivos desconocidos", phase:3},
+  {t:"Llamar a la Línea 155 de orientación a víctimas", phase:3},
+  {t:"Activar ruta de atención psicológica y médica", phase:3},
+  {t:"Informar a rectoría o coordinación y activar el protocolo escolar", phase:3},
+  {t:"Restringir visibilidad de publicaciones y limitar comentarios", phase:3},
+  {t:"Solicitar retiro o desindexación de contenido en buscadores", phase:3},
+  {t:"Reportar suplantación de identidad ante la plataforma", phase:3},
+  {t:"Notificar a la entidad financiera y bloquear tarjetas si hay fraude", phase:3},
+  {t:"Activar red de apoyo y acompañar a la víctima", phase:3},
+  {t:"Elaborar plan de seguimiento y registro de nuevos incidentes", phase:3},
+  {t:"No reenviar el material y pedir a terceros que lo eliminen", phase:3}
+];
+
+const M3_CASES = [
+  {
+    scenario:"MercadoLibre muestra \"¡Solo quedan 2 en stock!\" y \"Llega mañana si compras en los próximos 14 minutos\".",
+    mock:"<div class='hdr'><b>Producto:</b> Audífonos Bluetooth XYZ<br>Precio: $89.990 (antes $149.990) <span style='color:#b91c1c'>-40%</span></div>⚡ ¡Últimas 2 unidades!<br>🚚 Llega MAÑANA si compras en <b style='color:#b91c1c'>14:32</b><br>👥 47 personas están viendo este producto ahora",
+    options:[
+      {t:"Sesgo de Escasez + Urgencia Artificial → Compra impulsiva, gasto no presupuestado", correct:true},
+      {t:"Sesgo de Autoridad → Fidelización institucional", correct:false},
+      {t:"Sesgo de Prueba Social → Ahorro consciente", correct:false},
+      {t:"Sesgo de Anclaje → Inversión a largo plazo", correct:false}
+    ]
+  },
+  {
+    scenario:"TikTok Shop muestra un \"haul de Shein\" donde una influencer de 19 años exhibe 40 prendas por menos de $50 USD.",
+    mock:"<div class='hdr'><b>@fashionhaul_latam</b> · 2.3M vistas</div>\"¡Chicas! 40 outfits por menos de 50 dólares 🤯 Link en bio con mi cupón -20%<br>👗 Vestido $3.99 👗 Falda $2.49 👗 Crop top $1.99<br><i>\"No necesitan gastar mucho para verse increíbles\"</i>",
+    options:[
+      {t:"Hegemonía del Influencer + Fricción Cero → Materialismo, endeudamiento por estatus", correct:true},
+      {t:"Sesgo de Reciprocidad → Consumo sostenible", correct:false},
+      {t:"Efecto Halo → Empoderamiento financiero", correct:false},
+      {t:"Sesgo de Disponibilidad → Ahorro sistemático", correct:false}
+    ]
+  },
+  {
+    scenario:"CyberDay Chile: banners con cuentas regresivas, \"oferta flash\" cada 30 minutos y notificaciones push cada 5 minutos.",
+    mock:"<div class='hdr'><b>CYBERDAY 2026</b> · ¡Últimas horas!</div>⏰ Próxima oferta flash en: <b style='color:#b91c1c'>00:28:14</b><br>🔔 [Push] \"¡No te duermas! 70% OFF en TVs 4K\"<br>🔔 [Push] \"Tu carrito te espera... ¿seguro que no quieres completar?\"<br>🔔 [Push] \"Solo para ti: cupón extra -15%\"",
+    options:[
+      {t:"FOMO + Fatiga Cognitiva → Compras innecesarias, arrepentimiento post-compra, estrés", correct:true},
+      {t:"Sesgo de Confirmación → Decisiones racionales de compra", correct:false},
+      {t:"Efecto Dotación → Planificación financiera", correct:false},
+      {t:"Sesgo de Optimismo → Consumo responsable", correct:false}
+    ]
+  },
+  {
+    scenario:"App de streaming ofrece \"1 mes gratis\" pero requiere tarjeta de crédito. Al día 31 cobra automáticamente $14.990/mes sin aviso.",
+    mock:"<div class='hdr'><b>StreamMax Premium</b> · Oferta exclusiva</div>🎁 ¡Primer mes GRATIS!<br>💳 Se requiere tarjeta para verificar identidad<br><small style='color:#888'>(letra pequeña: \"Se renovará automáticamente a $14.990/mes. Cancelación solo vía llamada telefónica en horario laboral.\")</small>",
+    options:[
+      {t:"Suscripción Fantasma + Fricción de Cancelación → Vampirismo financiero, sensación de robo", correct:true},
+      {t:"Sesgo de Status Quo → Lealtad del consumidor", correct:false},
+      {t:"Efecto de Merma Ahorro → Educación financiera", correct:false},
+      {t:"Sesgo de Costo Hundido → Inversión cultural", correct:false}
+    ]
+  },
+  {t:"Instagram muestra un filtro de belleza que adelgaza el rostro, aclara la piel y agranda los ojos en tiempo real durante videollamadas.",
+    mock:"<div class='hdr'><b>Filtro \"GlowUp Pro\"</b> · Usado 12M de veces</div>✨ Piel perfecta ✨ Mandíbula definida ✨ Ojos brillantes<br>💬 <i>\"Me siento fea sin el filtro\"</i> — usuaria de 16 años<br>📈 Cirugías estéticas en menores +34% (2024-2026)",
+    options:[
+      {t:"Dismorfia Snapchat + Comparación Social → Baja autoestima, gasto en cosméticos/cirugías", correct:true},
+      {t:"Efecto de Exposición → Autoaceptación", correct:false},
+      {t:"Sesgo de Familiaridad → Empoderamiento digital", correct:false},
+      {t:"Efecto Pigmalión → Salud mental positiva", correct:false}
+    ]
+  },
+  {
+    scenario:"App de delivery sugiere \"agregar por solo $1.500 más\" al finalizar el pedido, con un clic y sin confirmar.",
+    mock:"<div class='hdr'><b>Tu pedido</b> · Total: $12.990</div>🍟 ¿Agregas papas por solo <b>$1.500</b>?<br>[✓ Agregar con 1 clic] [No gracias, pequeño]<br><small>El botón \"No\" ocupa 30% del tamaño del botón \"Sí\"</small>",
+    options:[
+      {t:"Dark Pattern + Fricción Cero → Gasto hormiga, acumulación de costos invisibles", correct:true},
+      {t:"Sesgo de Anclaje → Decisión informada", correct:false},
+      {t:"Efecto de Dotación → Consumo consciente", correct:false},
+      {t:"Sesgo de Reciprocidad → Ahorro sistemático", correct:false}
+    ]
+  },
+  {
+    scenario:"Influencer financiero promociona \"la criptomoneda que te hará millonario\" con capturas de ganancias falsas.",
+    mock:"<div class='hdr'><b>@crypto_master_latam</b> · Verificado ✓</div>💰 Invertí $100 y en 3 días tengo $4.700<br>🚀 Token \"MoonX\" → 4.600% de retorno<br>📲 Únete al grupo VIP (cupos limitados)<br><i>\"Mi abuela ya ganó su primer millón\"</i>",
+    options:[
+      {t:"Scam Romántico-Financiero + Prueba Social Falsa → Pérdida patrimonial, estafa piramidal", correct:true},
+      {t:"Sesgo de Autoridad → Inversión educada", correct:false},
+      {t:"Efecto Halo → Diversificación inteligente", correct:false},
+      {t:"Sesgo de Optimismo → Libertad financiera", correct:false}
+    ]
+  },
+  {
+    scenario:"Videojuego móvil vende \"cajas loot\" con recompensas aleatorias por $2.990 cada una. Un niño gasta $80.000 del celular de sus padres.",
+    mock:"<div class='hdr'><b>🎁 CAJA LEGENDARIA</b> · $2.990</div>🎯 Probabilidades:<br>• Ítem común: 70%<br>• Ítem raro: 25%<br>• Ítem legendario: <b style='color:#b91c1c'>0.5%</b><br>🔥 \"¡Ya van 47 aperturas sin legendario! ¿Seguir intentando?\"<br>💳 Pago con 1 clic · Sin confirmación adicional",
+    options:[
+      {t:"Recompensa Variable (tragamonedas cognitiva) → Adicción conductual, gasto compulsivo en menores", correct:true},
+      {t:"Sesgo de Coleccionismo → Entretenimiento sano", correct:false},
+      {t:"Efecto de Progreso → Motivación positiva", correct:false},
+      {t:"Sesgo de Logro → Desarrollo de perseverancia", correct:false}
+    ]
+  },
+  {
+    scenario:"Tienda online muestra \"3.247 personas compraron esto hoy\" y \"98% de clientes recomiendan este producto\".",
+    mock:"<div class='hdr'><b>Zapatillas Urban Pro</b></div>⭐⭐⭐⭐⭐ 4.9 (12.847 reseñas)<br>🔥 <b>3.247</b> compraron hoy<br>✅ 98% lo recomienda<br>👥 María de Santiago lo compró hace 3 minutos<br><small>Nota: las reseñas negativas están ocultas en página 47</small>",
+    options:[
+      {t:"Prueba Social Artificial + Efecto Arrastre → Anulación del pensamiento crítico, compra mimética", correct:true},
+      {t:"Sesgo de Autoridad → Decisión informada", correct:false},
+      {t:"Efecto de Familiaridad → Consumo racional", correct:false},
+      {t:"Sesgo de Confirmación → Ahorro inteligente", correct:false}
+    ]
+  },
+  {
+    scenario:"App de banca muestra \"¡Felicidades! Tienes pre-aprobado un crédito de $5.000.000. Acéptalo en 30 segundos\".",
+    mock:"<div class='hdr'><b>BancoDigital</b> · Oferta personalizada</div>🎉 ¡Felicidades, [Nombre]!<br>Tienes PRE-APROBADO un crédito de <b>$5.000.000</b><br>⏱ Acepta en los próximos <b style='color:#b91c1c'>00:29:58</b><br>[✓ ACEPTAR AHORA] [Quizás después]<br><small>Tasa: 2.8% mensual · Cuota: $187.000 x 48 meses</small>",
+    options:[
+      {t:"Urgencia Artificial + Lisonja → Sobreendeudamiento, decisiones financieras impulsivas", correct:true},
+      {t:"Sesgo de Reciprocidad → Inclusión financiera", correct:false},
+      {t:"Efecto de Dotación → Educación crediticia", correct:false},
+      {t:"Sesgo de Status Quo → Planificación patrimonial", correct:false}
+    ]
+  }
+];
+
+const M4_DILEMMAS = [
+  {
+    title:"Dilema 1 · La Notificación Irresistible",
+    situation:"Son las 11:47 PM. Tienes examen mañana. El celular vibra: \"María reaccionó a tu historia\". Luego: \"Tienes 3 mensajes sin leer\". Luego: \"Nuevo video de tu creador favorito\"."
+  },
+  {
+    title:"Dilema 2 · La Oferta que Expira",
+    situation:"Estás ahorrando para un viaje. Ves en Instagram unos zapatos en oferta: \"-60%, solo por 2 horas\". Tu saldo alcanza justo. El contador marca 00:47:12."
+  },
+  {
+    title:"Dilema 3 · El Hilo Infinito",
+    situation:"Entras a TikTok \"solo 5 minutos\". Llevas 2 horas. Mañana trabajas temprano. El algoritmo sabe exactamente qué mostrarte para que no salgas."
+  },
+  {
+    title:"Dilema 4 · La Invitación del Grupo",
+    situation:"Tu grupo de amigos comparte cadenas, memes con datos personales y links de \"sorteos\". Si no participas, te excluyen. Si participas, expones tus datos."
+  },
+  {
+    title:"Dilema 5 · El Trabajo Remoto Demasiado Bueno",
+    situation:"Recibes un correo: \"Gana $800.000 mensuales desde casa. Solo 2 horas diarias. Paga tu inscripción de $45.000 para activar tu cuenta\"."
+  },
+  {
+    title:"Dilema 6 · La Foto Íntima",
+    situation:"Tu pareja te pide una foto íntima \"para demostrar confianza\". Sabes que una vez enviada, pierdes el control sobre ella para siempre."
+  },
+  {
+    title:"Dilema 7 · La Suscripción Fantasma",
+    situation:"Te suscribiste a una app \"gratis\" hace 6 meses. Descubres que te han cobrado $89.990 mensuales. Cancelar requiere llamar en horario laboral."
+  },
+  {
+    title:"Dilema 8 · El Influencer Financiero",
+    situation:"Un influencer con 500K seguidores recomienda una criptomoneda: \"La compré a $0.01 y ya vale $2. Subirá 1000% más. Invierte todo lo que puedas\"."
+  },
+  {
+    title:"Dilema 9 · El Filtro de Belleza",
+    situation:"Tu hija de 13 años no quiere salir a videollamadas familiares sin el filtro de belleza. Dice que \"se siente fea sin él\"."
+  },
+  {
+    title:"Dilema 10 · La Denuncia Silenciada",
+    situation:"Presencias en un grupo de WhatsApp que comparten fotos íntimas de una compañera de curso. Nadie dice nada. Si reportas, te pueden excluir."
+  }
+];
+
+/* ============ ESTADO ============ */
+let state = {
+  m1: Array(M1_CASES.length).fill(null),
+  m2: {},
+  m3: Array(M3_CASES.length).fill(null),
+  m4: Array(M4_DILEMMAS.length).fill(null)
+};
+
+/* ============ NAVEGACIÓN ============ */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>go(b.dataset.mod));
+});
+function go(id){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`nav button[data-mod="${id}"]`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='final') renderFinal();
+}
+
+/* ============ MÓDULO 1 ============ */
+function renderM1(){
+  const list = document.getElementById('m1List');
+  list.innerHTML = '';
+  M1_CASES.forEach((c,i)=>{
+    const div = document.createElement('div');
+    div.className = 'case-card';
+    div.innerHTML = `
+      <div><span class="num">#${i+1}</span><b>Escenario</b></div>
+      <div class="text">"${c.t}"</div>
+      <div class="controls">
+        <select data-idx="${i}" data-field="threat">
+          <option value="">-- Tipo de amenaza --</option>
+          <option>Phishing</option>
+          <option>Grooming</option>
+          <option>Catfishing</option>
+          <option>Adicción UX</option>
+          <option>Falso Positivo</option>
+        </select>
+        <select data-idx="${i}" data-field="mech">
+          <option value="">-- Mecanismo psicológico --</option>
+          <option>Urgencia/Miedo</option>
+          <option>Confianza/Secreto</option>
+          <option>Recompensa Variable</option>
+          <option>Empatía/Soledad</option>
+          <option>Curiosidad/Institucionalidad</option>
+          <option>Dependencia Neuroquímica</option>
+          <option>Autoridad/Urgencia</option>
+          <option>FOMO/Recompensa Variable</option>
+          <option>Empatía/Deseo</option>
+          <option>Miedo/Institucionalidad</option>
+          <option>Recompensa/Confianza</option>
+          <option>Urgencia Artificial</option>
+          <option>Autoridad/Miedo</option>
+          <option>Oportunidad/Necesidad</option>
+          <option>Fricción Cero/Recompensa Variable</option>
+          <option>Empatía/Compasión</option>
+          <option>Error Algorítmico</option>
+          <option>Codicia/Sorpresa</option>
+          <option>Pérdida/FOMO</option>
+          <option>Manipulación/Secreto</option>
+          <option>Autoridad/Curiosidad</option>
+          <option>Error de Segmentación</option>
+          <option>Falacia del Jugador</option>
+          <option>Dismorfia/Refuerzo</option>
+          <option>Radar de Recomendación</option>
+          <option>Aversión a la Pérdida</option>
+          <option>Fricción Forzada/Urgencia</option>
+          <option>Vínculo Familiar/Urgencia</option>
+          <option>Fatiga de Alertas</option>
+          <option>Codicia/Prueba Social</option>
+          <option>Empatía/Confianza</option>
+          <option>Prueba Social/Institucionalidad</option>
+        </select>
+      </div>
+      <div class="feedback" id="fb1-${i}"></div>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('select').forEach(s=>{
+    s.addEventListener('change',()=>{
+      const idx = +s.dataset.idx;
+      const field = s.dataset.field;
+      if(!state.m1[idx]) state.m1[idx] = {};
+      state.m1[idx][field] = s.value;
+    });
+  });
+}
+function checkAllM1(){
+  let correct = 0;
+  M1_CASES.forEach((c,i)=>{
+    const fb = document.getElementById(`fb1-${i}`);
+    const ans = state.m1[i] || {};
+    const okT = ans.threat === c.threat;
+    const okM = ans.mech === c.mech;
+    if(okT && okM){
+      correct++;
+      fb.className = 'feedback ok';
+      fb.innerHTML = `✓ Correcto. Amenaza: <b>${c.threat}</b> · Mecanismo: <b>${c.mech}</b>`;
+    } else {
+      fb.className = 'feedback err';
+      fb.innerHTML = `✗ Incorrecto. Respuesta correcta → Amenaza: <b>${c.threat}</b> · Mecanismo: <b>${c.mech}</b>`;
+    }
+  });
+  state.m1Correct = correct;
+  updateScore();
+}
+function resetM1(){
+  state.m1 = Array(M1_CASES.length).fill(null);
+  state.m1Correct = 0;
+  renderM1();
+  updateScore();
+}
+
+/* ============ MÓDULO 2 · DRAG & DROP ============ */
+let draggedChip = null;
+function renderM2(){
+  const pool = document.getElementById('poolItems');
+  pool.innerHTML = '';
+  document.querySelectorAll('.dropzone[data-phase] .items').forEach(z=>z.innerHTML='');
+  // Shuffle
+  const shuffled = [...M2_ACTIONS].map((a,i)=>({...a,origIdx:i})).sort(()=>Math.random()-0.5);
+  shuffled.forEach(a=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.draggable = true;
+    chip.dataset.idx = a.origIdx;
+    chip.dataset.phase = a.phase;
+    chip.textContent = a.t;
+    chip.addEventListener('dragstart',e=>{
+      draggedChip = chip;
+      chip.style.opacity = '0.5';
+    });
+    chip.addEventListener('dragend',()=>{chip.style.opacity='1'});
+    // Touch support
+    chip.addEventListener('click',()=>{
+      if(chip.classList.contains('selected-chip')){
+        chip.classList.remove('selected-chip');
+        chip.style.borderColor='';
+      } else {
+        document.querySelectorAll('.chip.selected-chip').forEach(c=>{c.classList.remove('selected-chip');c.style.borderColor=''});
+        chip.classList.add('selected-chip');
+        chip.style.borderColor='var(--accent)';
+      }
+    });
+    pool.appendChild(chip);
+  });
+  // Drop zones
+  document.querySelectorAll('.dropzone').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.style.borderColor='var(--accent)'});
+    zone.addEventListener('dragleave',()=>{zone.style.borderColor=''});
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();
+      zone.style.borderColor='';
+      if(draggedChip){
+        zone.querySelector('.items').appendChild(draggedChip);
+        state.m2[draggedChip.dataset.idx] = zone.dataset.phase || 'pool';
+      }
+    });
+    // Click to assign selected chip
+    zone.addEventListener('click',e=>{
+      if(e.target.classList.contains('items') || e.target===zone){
+        const sel = document.querySelector('.chip.selected-chip');
+        if(sel){
+          zone.querySelector('.items').appendChild(sel);
+          sel.classList.remove('selected-chip');
+          sel.style.borderColor='';
+          state.m2[sel.dataset.idx] = zone.dataset.phase || 'pool';
+        }
+      }
+    });
+  });
+  // Pool click returns to pool
+  pool.addEventListener('click',e=>{
+    if(e.target===pool){
+      const sel = document.querySelector('.chip.selected-chip');
+      if(sel){
+        pool.appendChild(sel);
+        sel.classList.remove('selected-chip');
+        sel.style.borderColor='';
+        delete state.m2[sel.dataset.idx];
+      }
+    }
+  });
+}
+function checkM2(){
+  let correct = 0;
+  M2_ACTIONS.forEach((a,i)=>{
+    const chip = document.querySelector(`.chip[data-idx="${i}"]`);
+    const parent = chip.parentElement.parentElement;
+    const assigned = parent.dataset.phase;
+    chip.classList.remove('correct','wrong');
+    if(assigned == a.phase){
+      correct++;
+      chip.classList.add('correct');
+    } else {
+      chip.classList.add('wrong');
+    }
+  });
+  state.m2Correct = correct;
+  updateScore();
+  alert(`Clasificación validada: ${correct} / 40 correctas.`);
+}
+function resetM2(){
+  state.m2 = {};
+  state.m2Correct = 0;
+  renderM2();
+  updateScore();
+}
+
+/* ============ MÓDULO 3 ============ */
+function renderM3(){
+  const list = document.getElementById('m3List');
+  list.innerHTML = '';
+  M3_CASES.forEach((c,i)=>{
+    const div = document.createElement('div');
+    div.className = 'simulator';
+    const opts = c.options.map((o,j)=>`<button data-case="${i}" data-opt="${j}">${o.t}</button>`).join('');
+    div.innerHTML = `
+      <div><span class="num">#${i+1}</span><b>${c.scenario}</b></div>
+      <div class="mock-email">${c.mock}</div>
+      <div class="choices" id="choices-${i}">${opts}</div>
+      <div class="feedback" id="fb3-${i}"></div>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.choices button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const ci = +b.dataset.case;
+      const oi = +b.dataset.opt;
+      const correct = M3_CASES[ci].options[oi].correct;
+      const fb = document.getElementById(`fb3-${ci}`);
+      document.querySelectorAll(`#choices-${ci} button`).forEach(x=>x.disabled=true);
+      if(correct){
+        b.classList.add('correct');
+        fb.className='feedback ok';
+        fb.innerHTML = '✓ Análisis correcto. Has identificado el mecanismo de extracción.';
+        state.m3[ci] = true;
+      } else {
+        b.classList.add('wrong');
+        const correctOpt = M3_CASES[ci].options.findIndex(o=>o.correct);
+        document.querySelectorAll(`#choices-${ci} button`)[correctOpt].classList.add('correct');
+        fb.className='feedback err';
+        fb.innerHTML = '✗ Análisis incorrecto. Observa la respuesta correcta marcada en verde.';
+        state.m3[ci] = false;
+      }
+      updateScore();
+    });
+  });
+}
+function resetM3(){
+  state.m3 = Array(M3_CASES.length).fill(null);
+  state.m3Correct = 0;
+  renderM3();
+  updateScore();
+}
+
+/* ============ MÓDULO 4 ============ */
+function renderM4(){
+  const list = document.getElementById('m4List');
+  list.innerHTML = '';
+  M4_DILEMMAS.forEach((d,i)=>{
+    const div = document.createElement('div');
+    div.className = 'sentence-builder';
+    div.innerHTML = `
+      <div><span class="num">${d.title}</span></div>
+      <div class="text" style="margin:8px 0"><i>${d.situation}</i></div>
+      <label>1. Amenaza a la autonomía (¿qué mecanismo intenta secuestrarte?)</label>
+      <textarea data-i="${i}" data-f="threat"></textarea>
+      <label>2. Costo de la sumisión (¿qué pierdes si cedes?)</label>
+      <textarea data-i="${i}" data-f="cost"></textarea>
+      <label>3. Veredicto de soberanía (acción técnica y psicológica exacta)</label>
+      <textarea data-i="${i}" data-f="verdict"></textarea>
+      <div class="feedback" id="fb4-${i}"></div>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('textarea').forEach(t=>{
+    t.addEventListener('input',()=>{
+      const i = +t.dataset.i;
+      const f = t.dataset.f;
+      if(!state.m4[i]) state.m4[i] = {};
+      state.m4[i][f] = t.value.trim();
+    });
+  });
+}
+function evaluateM4(){
+  let score = 0;
+  M4_DILEMMAS.forEach((d,i)=>{
+    const ans = state.m4[i] || {};
+    const fb = document.getElementById(`fb4-${i}`);
+    const t = (ans.threat||'').length;
+    const c = (ans.cost||'').length;
+    const v = (ans.verdict||'').length;
+    const total = t+c+v;
+    if(total >= 80 && t>=15 && c>=15 && v>=25){
+      score++;
+      fb.className='feedback ok';
+      fb.innerHTML = '⚖️ Sentencia válida: estructura completa y argumentación sustancial.';
+    } else if(total >= 40){
+      fb.className='feedback info';
+      fb.innerHTML = '⚠️ Sentencia parcial: profundiza en los tres componentes. Mínimo: 80 caracteres totales con cada sección desarrollada.';
+    } else {
+      fb.className='feedback err';
+      fb.innerHTML = '✗ Sentencia insuficiente. Debes desarrollar los tres componentes con rigor.';
+    }
+  });
+  state.m4Correct = score;
+  updateScore();
+}
+function resetM4(){
+  state.m4 = Array(M4_DILEMMAS.length).fill(null);
+  state.m4Correct = 0;
+  renderM4();
+  updateScore();
+}
+
+/* ============ SCORE ============ */
+function updateScore(){
+  const m1 = state.m1Correct || 0;
+  const m2 = state.m2Correct || 0;
+  const m3 = (state.m3.filter(x=>x===true).length);
+  const m4 = state.m4Correct || 0;
+  state.m3Correct = m3;
+  const total = m1+m2+m3+m4;
+  const max = 100;
+  document.getElementById('m1Score').textContent = `${m1} / 40`;
+  document.getElementById('m2Score').textContent = `${m2} / 40`;
+  document.getElementById('m3Score').textContent = `${m3} / 10`;
+  document.getElementById('m4Score').textContent = `${m4} / 10`;
+  document.getElementById('totalScore').textContent = total;
+  document.getElementById('m1Bar').style.width = (m1/40*100)+'%';
+  document.getElementById('m2Bar').style.width = (m2/40*100)+'%';
+  document.getElementById('m3Bar').style.width = (m3/10*100)+'%';
+  document.getElementById('m4Bar').style.width = (m4/10*100)+'%';
+  document.getElementById('totalBar').style.width = (total/max*100)+'%';
+}
+
+/* ============ FINAL ============ */
+function renderFinal(){
+  const m1 = state.m1Correct || 0;
+  const m2 = state.m2Correct || 0;
+  const m3 = state.m3Correct || 0;
+  const m4 = state.m4Correct || 0;
+  const total = m1+m2+m3+m4;
+  let level, color, desc;
+  if(total >= 85){ level="5 · Mentor Digital"; color="var(--gold)"; desc="Has alcanzado la soberanía plena. Eres capaz de enseñar, denunciar y acompañar a tu comunidad. Tu disciplina mental es inquebrantable."; }
+  else if(total >= 65){ level="4 · Ciudadano Soberano"; color="var(--ok)"; desc="Ejercer activamente tus derechos digitales. Configuras tu privacidad, practicas la desintoxicación y curas manualmente tu feed."; }
+  else if(total >= 45){ level="3 · Consumidor Consciente"; color="var(--accent)"; desc="Aplicas la regla de las 24 horas, auditas suscripciones y desactivas la fricción cero. Aún hay patrones que te atrapan."; }
+  else if(total >= 25){ level="2 · Usuario Defensivo"; color="var(--warn)"; desc="Desconfías y usas antivirus, pero no has transformado tus hábitos profundos. La ingeniería de la atención aún te captura."; }
+  else { level="1 · Esclavo del Algoritmo"; color="var(--err)"; desc="Respondes reactivamente a cada notificación, compras por impulso y tu atención está secuestrada. El primer paso es reconocer la adicción."; }
+  document.getElementById('finalContent').innerHTML = `
+    <div class="result-banner">
+      <div style="font-size:.9rem;color:var(--muted);letter-spacing:2px">NIVEL DE SOBERANÍA ALCANZADO</div>
+      <div class="score" style="background:linear-gradient(90deg,${color},var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent">${level}</div>
+      <div style="font-size:1.4rem;font-weight:700;margin:8px 0">${total} / 100 puntos</div>
+      <div style="color:var(--muted);max-width:600px;margin:12px auto">${desc}</div>
+    </div>
+    <div class="dashboard">
+      <div class="card"><div class="label">M1 · Amenazas</div><div class="value">${m1}/40</div></div>
+      <div class="card"><div class="label">M2 · Protocolo</div><div class="value">${m2}/40</div></div>
+      <div class="card"><div class="label">M3 · Consumismo</div><div class="value">${m3}/10</div></div>
+      <div class="card"><div class="label">M4 · Soberanía</div><div class="value">${m4}/10</div></div>
+    </div>
+    <div class="legend">
+      <b>Reflexión final:</b> La soberanía digital no es un destino, es una práctica diaria. Cada notificación ignorada, cada compra postergada 24 horas, cada evidencia preservada, es un acto de reclaimación del yo. No eres el producto; eres el ciudadano.
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn" onclick="go('dashboard')">🔄 Volver al Dashboard</button>
+    </div>
+  `;
+}
+
+/* ============ INIT ============ */
+renderM1();
+renderM2();
+renderM3();
+renderM4();
+updateScore();
+</script>
+
+</body>
+</html>
